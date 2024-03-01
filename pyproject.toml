@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "streamlit-test"
+version = "0.1.0"
+description = ""
+authors = ["hanjoo <hanjoo8821@postech.ac.kr>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+streamlit = "^1.31.1"
+streamlit-card = "^1.0.0"
+streamlit-modal = "^0.1.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
