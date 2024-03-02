@@ -3,17 +3,13 @@ import streamlit as st
 from components.navigation import navigation
 from components.modal import (
     modal_create_master, modal_load_master, modal_save_master,
-    modal_create_eds, modal_load_eds, modal_save_eds
+    modal_create_eds, modal_load_eds, modal_save_eds,
+    modal_action
 )
-from utils.dyf import (
-    create_master, load_master, save_master,
-    create_eds, load_eds, save_eds
-)
+from utils.dyf import load_master, load_eds
 from data.dyf import (
-    df_master, df_item, df_condition, df_eds,
-    sel_operator,
-    sel_master_public, sel_master_private,
-    sel_eds_public, sel_eds_private
+    df_condition, df_eds, df_version,
+    sel_master_name, sel_operator
 )
 
 
@@ -25,11 +21,11 @@ st.session_state["current_page_path"] = "pages/dyf.py"
 if "main_view" not in st.session_state:
     st.session_state["main_view"] = "default"
 
-if "public_mode_master" not in st.session_state:
-    st.session_state["public_mode_master"] = True
+# if "public_mode_master" not in st.session_state:
+#     st.session_state["public_mode_master"] = True
 
-if "public_mode_eds" not in st.session_state:
-    st.session_state["public_mode_eds"] = True
+# if "public_mode_eds" not in st.session_state:
+#     st.session_state["public_mode_eds"] = True
 
 
 # Main ---------------------------------------------------------------------------------------
@@ -44,7 +40,7 @@ with st.sidebar:
     st.subheader("Master")
     if st.button("✒️ Create New Master", key="create_master", type="primary", use_container_width=True):
         modal_create_master.open()
-    st.selectbox("Select", options=["A 제품", "B 제품", "C 제품"], label_visibility='collapsed')
+    st.selectbox("Select", options=sel_master_name, key="selected_master", label_visibility='collapsed')
     c1, c2 = st.columns([3, 2])
     if c1.button("✨ 최신 버전 열기", key="master_load_newest", use_container_width=True):
         load_master()
@@ -53,8 +49,8 @@ with st.sidebar:
 
     st.markdown("")
 
-    st.subheader("EDS Plan")
-    if st.button("✒️ Create New EDS Plan", key="create_eds", type="primary", use_container_width=True):
+    st.subheader("EDS Test Plan")
+    if st.button("✒️ Create New EDS Test Plan", key="create_eds", type="primary", use_container_width=True):
         modal_create_eds.open()
     c1, c2 = st.columns([3, 2])
     if c1.button("✨ 최신 버전 열기", key="eds_load_newest", use_container_width=True):
@@ -68,29 +64,27 @@ if st.session_state["main_view"] == "default":
     st.divider()
     st.info("DBKM Yield Forecast를 위한 기준 정보 버전 관리 Appication입니다.", icon="ℹ️")
 
-elif st.session_state["main_view"] == "main":
+elif st.session_state["main_view"] == "master":
     st.title("Master")
     _, c2 = st.columns([11, 1])
     if c2.button("✔️ Save", key="master_save", type='primary', use_container_width=True):
         modal_save_master.open()
 
-    t1, t2, t3 = st.tabs(["master", "master_item", "conditions"])
+    t1, t2, t3 = st.tabs(["master", "master_item", "condition"])
 
     with t1:
-        st.data_editor(df_master, hide_index=True, num_rows='dynamic')
+        st.data_editor(st.session_state["df_master_view"], hide_index=True)
 
     with t2:
-        st.data_editor(df_item, hide_index=True, num_rows='dynamic')
+        editor_item = st.data_editor(st.session_state["df_item_view"], key="editor_item", num_rows='dynamic', hide_index=True)
 
     with t3:
-        st.data_editor(
-            df_condition,
-            hide_index=True,
-            num_rows='dynamic',
-            column_config={
-                "operator": sel_operator
-            }
-        )
+        item_list = editor_item["item"]
+        if len(item_list) > 0:
+            for i in item_list:
+                st.markdown(f"**{i}**")
+                df_condition_sub = df_condition[df_condition["item"] == i].reset_index(drop=True).drop(["item"], axis=1)
+                st.data_editor(df_condition_sub, hide_index=True, num_rows='dynamic', column_config={"operator": sel_operator}, key=i)
 
 elif st.session_state["main_view"] == "eds":
     st.title("EDS Plan")   
@@ -101,92 +95,5 @@ elif st.session_state["main_view"] == "eds":
 
 
 # Modal Control ------------------------------------------------------------------------------------
-
-# create 
-if modal_create_master.is_open():
-    with modal_create_master.container():
-        _, c2 = st.columns([3, 1])
-        if c2.button("신규 마스터 생성", use_container_width=True):
-            create_master()
-            modal_create_master.close()
-
-if modal_create_eds.is_open():
-    with modal_create_eds.container():
-        _, c2 = st.columns([3, 1])
-        if c2.button("빈 테이블 생성", use_container_width=True):
-            create_eds()
-            modal_create_eds.close()
-
-# load
-if modal_load_master.is_open():
-    with modal_load_master.container():
-        mode = st.radio("모드", ["개인", "공용"], label_visibility="collapsed", horizontal=True)
-        if mode == "개인":
-            st.selectbox("선택", sel_master_private, label_visibility="hidden")
-            st.markdown("")
-            _, c2 = st.columns([3, 1])
-            if c2.button("📂 개인 버전 열기", use_container_width=True):
-                load_master()
-                modal_load_master.close()
-        else:
-            st.selectbox("선택", sel_master_public, label_visibility="hidden")
-            st.markdown("")
-            _, c2 = st.columns([3, 1])
-            if c2.button("📂 공용 버전 열기", use_container_width=True):
-                load_master()
-                modal_load_master.close()
-
-if modal_load_eds.is_open():
-    with modal_load_eds.container():
-        mode = st.radio("모드", ["개인", "공용"], label_visibility="collapsed", horizontal=True)
-        if mode == "개인":
-            st.selectbox("선택", sel_eds_private, label_visibility="hidden")
-            st.markdown("")
-            _, c2 = st.columns([3, 1])
-            if c2.button("📂 개인 버전 열기", use_container_width=True):
-                load_eds()
-                modal_load_eds.close()
-        else:
-            st.selectbox("선택", sel_eds_public, label_visibility="hidden")
-            st.markdown("")
-            _, c2 = st.columns([3, 1])
-            if c2.button("📂 공용 버전 열기", use_container_width=True):
-                load_eds()
-                modal_load_eds.close()
-
-# save
-if modal_save_master.is_open():
-    with modal_save_master.container():
-        mode = st.radio("모드", ["개인", "공용"], label_visibility="collapsed", horizontal=True)
-        if mode == "개인":
-            st.text_input("입력", placeholder="버전 코멘트 입력", label_visibility="hidden")
-            st.markdown("")
-            _, c2 = st.columns([3, 1])
-            if c2.button("💾 개인 버전 저장", use_container_width=True):
-                save_master()
-                modal_save_master.close()
-        else:
-            st.text_input("입력", placeholder="버전 코멘트 입력", label_visibility="hidden")
-            st.markdown("")
-            _, c2 = st.columns([3, 1])
-            if c2.button("💾 공용 버전 저장", use_container_width=True):
-                save_master()
-                modal_save_master.close()
-
-if modal_save_eds.is_open():
-    with modal_save_eds.container():
-        mode = st.radio("모드", ["개인", "공용"], label_visibility="collapsed", horizontal=True)
-        if mode == "개인":
-            st.text_input("입력", placeholder="버전 코멘트 입력", label_visibility="hidden")
-            st.markdown("")
-            _, c2 = st.columns([3, 1])
-            if c2.button("💾 개인 버전 저장", use_container_width=True):
-                save_eds()
-                modal_save_eds.close()
-        else:
-            st.text_input("입력", placeholder="버전 코멘트 입력", label_visibility="hidden")
-            st.markdown("")
-            _, c2 = st.columns([3, 1])
-            if c2.button("💾 공용 버전 저장", use_container_width=True):
-                save_eds()
-                modal_save_eds.close()
+    
+modal_action()
