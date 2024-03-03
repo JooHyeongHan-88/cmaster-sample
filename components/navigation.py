@@ -2,7 +2,7 @@ import streamlit as st
 
 
 def navigation():
-    if "username" not in st.session_state:
+    if "user_id" not in st.session_state:
         st.switch_page("app.py")
     else:
         # st.sidebar.button(st.session_state["username"] + "님. 안녕하세요.", use_container_width=True, disabled=True)

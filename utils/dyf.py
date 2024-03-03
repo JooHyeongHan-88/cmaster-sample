@@ -1,20 +1,98 @@
 import streamlit as st
 import pandas as pd
 
-from data.dyf import df_master, df_item
+from typing import List
+from datetime import datetime
+import re
+
+from data.dyf import df_version, df_master, df_item, df_eds
 
 
-def load_master():
-    df_master_sub: pd.DataFrame = df_master[df_master["master_name"] == st.session_state["selected_master"]].reset_index(drop=True)
-    df_item_sub: pd.DataFrame = df_item[df_item["master_name"] == st.session_state["selected_master"]].reset_index(drop=True).drop("master_name", axis=1)
+def set_selected_master_ver_id():
+    ver_id: List[int] = df_master[df_master["master_name"] == st.session_state["selected_master"]]["ver_id"]
+
+    df = df_version[df_version["id"].isin(ver_id)].sort_values(by='create_date', ascending=False)
+
+    st.session_state["sel_master_ver_id"] = df["id"]
+    st.session_state["newest_master_ver_id"] = df.iloc[0]['id']
+
+
+def set_newest_eds_ver_id():
+    ver_id: List[int] = df_eds["ver_id"]
+
+    df = df_version[df_version["id"].isin(ver_id)].sort_values(by='create_date', ascending=False)
+
+    st.session_state["newest_eds_ver_id"] = df.iloc[0]['id']
+
+
+def get_version_string(df: pd.DataFrame):
+    if len(df) > 0:
+        ver_str = '[' + df['create_date'].apply(lambda x: x.strftime('%Y-%m-%d %H:%M:%S')) + '] ' + df['comment']
+        ver_str = ver_str.tolist()
+        return ver_str
+    else:
+        return []
+
+
+def get_selected_ver_id(ver_string: str) -> int:
+    match = re.match(r'\[(.*?)\]\s*(.*)', ver_string)
+
+    create_date = datetime.strptime(match.group(1), '%Y-%m-%d %H:%M:%S')
+    comment = match.group(2)
+
+    ver_id = df_version[(df_version["create_date"] == create_date) & (df_version["comment"] == comment)].iloc[0]["id"]
+
+    return ver_id
+
+
+def get_item_id(item: str) -> int:
+    
+    item_id = df_item[
+        (df_item["ver_id"] == st.session_state["current_master_ver_id"]) &
+        (df_item["item"] == item)
+    ].iloc[0]["id"]
+
+    return item_id
+
+
+def load_master_newest():
+    df_master_sub: pd.DataFrame = df_master[df_master["ver_id"] == st.session_state["newest_master_ver_id"]].reset_index(drop=True).drop(["id", "ver_id"], axis=1)
+    df_item_sub: pd.DataFrame = df_item[df_item["ver_id"] == st.session_state["newest_master_ver_id"]].reset_index(drop=True).drop(["id", "master_name", "ver_id"], axis=1)
     
     st.session_state["df_master_view"] = df_master_sub
     st.session_state["df_item_view"] = df_item_sub
 
+    st.session_state["current_master_ver_id"] = st.session_state["newest_master_ver_id"]
+
     st.session_state["main_view"] = "master"
 
 
-def load_eds():
+def load_eds_newest():
+
+    st.session_state["df_eds_view"] = df_eds[df_eds["ver_id"] == st.session_state["newest_eds_ver_id"]].reset_index(drop=True).drop(["id", "ver_id"], axis=1)
+
+    st.session_state["current_eds_ver_id"] = st.session_state["newest_eds_ver_id"]
+
+    st.session_state["main_view"] = "eds"
+
+
+def load_master_ver(ver_id: int):
+    df_master_sub = df_master[df_master["ver_id"] == ver_id].reset_index(drop=True).drop(["id", "ver_id"], axis=1)
+    df_item_sub= df_item[df_item["ver_id"] == ver_id].reset_index(drop=True).drop(["id", "master_name", "ver_id"], axis=1)
+    
+    st.session_state["df_master_view"] = df_master_sub
+    st.session_state["df_item_view"] = df_item_sub
+
+    st.session_state["current_master_ver_id"] = ver_id
+
+    st.session_state["main_view"] = "master"
+
+
+def load_eds_ver(ver_id: int):
+    st.session_state["df_eds_view"] = df_eds[df_eds["ver_id"] == ver_id].reset_index(drop=True).drop(["id", "ver_id"], axis=1)
+
+    st.session_state["current_eds_ver_id"] = ver_id
+
     st.session_state["main_view"] = "eds"
 
 

@@ -14,14 +14,21 @@ st.set_page_config(
 st.session_state["current_page"] = None
 
 
-if "username" not in st.session_state:
-    if st.button("로그인"):
+if "user_id" not in st.session_state:
+    if st.button("hanjoo88.han 로그인"):
+        st.session_state.clear()
+        st.session_state["user_id"] = "hanjoo88.han"
         st.session_state["username"] = "한주형"
+        st.rerun()
+    if st.button("hd81.lee 로그인"):
+        st.session_state.clear()
+        st.session_state["user_id"] = "hd81.lee"
+        st.session_state["username"] = "이호동"
         st.rerun()
 else:
     navigation()
 
-    c1, c2, _, _ = st.columns(4)
+    c1, c2, _ = st.columns(3)
 
     with c1:
         card(
