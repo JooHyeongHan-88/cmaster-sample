@@ -10,10 +10,7 @@ from utils.dyf import (
     load_master_newest, load_eds_newest,
     set_selected_master_ver_id, set_newest_eds_ver_id, get_item_id
 )
-from data.dyf import (
-    df_condition, df_eds,
-    sel_master_name, sel_operator
-)
+from data.dyf import df_condition, sel_master_name, sel_operator
 
 
 # Initialize ---------------------------------------------------------------------------------
@@ -23,12 +20,6 @@ st.session_state["current_page_path"] = "pages/dyf.py"
 
 if "main_view" not in st.session_state:
     st.session_state["main_view"] = "default"
-
-# if "public_mode_master" not in st.session_state:
-#     st.session_state["public_mode_master"] = True
-
-# if "public_mode_eds" not in st.session_state:
-#     st.session_state["public_mode_eds"] = True
 
 
 # Main ---------------------------------------------------------------------------------------
@@ -40,6 +31,7 @@ navigation()
 with st.sidebar:
     st.divider()
 
+    # DBKM Master
     st.subheader("DBKM Master")
     
     if st.button("✒️ Create New Master", key="create_master", type="primary", use_container_width=True):
@@ -57,6 +49,7 @@ with st.sidebar:
 
     st.markdown("")
 
+    # EDS Test Plan
     st.subheader("EDS Test Plan")
     
     if st.button("✒️ Create New EDS Test Plan", key="create_eds", type="primary", use_container_width=True):
@@ -79,31 +72,34 @@ if st.session_state["main_view"] == "default":
 elif st.session_state["main_view"] == "master":
     st.title("DBKM Master")
     _, c2 = st.columns([5, 1])
-    if c2.button("✔️ Save", key="master_save", type='primary', use_container_width=True):
+    if c2.button("✔️ Save", type='primary', use_container_width=True):
         modal_save_master.open()
 
     t1, t2, t3 = st.tabs(["master", "master_item", "condition"])
     with t1:
-        st.data_editor(st.session_state["df_master_view"], hide_index=True)
+        st.session_state["view_master"] = st.data_editor(st.session_state["df_master_view"], hide_index=True)
 
     with t2:
-        editor_item = st.data_editor(st.session_state["df_item_view"], key="editor_item", num_rows='dynamic', hide_index=True)
+        st.session_state["view_item"] = st.data_editor(st.session_state["df_item_view"], key="editor_item", num_rows='dynamic', hide_index=True)
 
     with t3:
-        item_list = editor_item["item"]
+        item_list = st.session_state["view_item"]["item"]
+        st.session_state["view_condition"] = {}
         if len(item_list) > 0:
-            for item in item_list:
+            for i, item in enumerate(item_list):
                 st.markdown(f"**{item}**")
-                i = get_item_id(item)
-                df_condition_sub = df_condition[df_condition["item_id"] == i].reset_index(drop=True).drop(["id", "item_id"], axis=1)
-                st.data_editor(df_condition_sub, hide_index=True, num_rows='dynamic', column_config={"operator": sel_operator}, key=i)
+                if i in st.session_state["editor_item"]['edited_rows'].keys():
+                    item = st.session_state["df_item_view"].iloc[i]["item"]
+                item_id = get_item_id(item)
+                df_condition_sub = df_condition[df_condition["item_id"] == item_id].reset_index(drop=True).drop(["id", "item_id"], axis=1)
+                st.session_state["view_condition"][i] = st.data_editor(df_condition_sub, hide_index=True, num_rows='dynamic', column_config={"operator": sel_operator}, key=i)
 
 elif st.session_state["main_view"] == "eds":
     st.title("EDS Test Plan")   
     _, c2 = st.columns([5, 1])
-    if c2.button("✔️ Save", key="eds_save", type='primary', use_container_width=True):
+    if c2.button("✔️ Save", type='primary', use_container_width=True):
         modal_save_eds.open()
-    st.data_editor(st.session_state["df_eds_view"], hide_index=True, num_rows='dynamic')
+    st.session_state["view_eds"] = st.data_editor(st.session_state["df_eds_view"], hide_index=True, num_rows='dynamic')
 
 
 # Modal Control ------------------------------------------------------------------------------------
